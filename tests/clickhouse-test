@@ -2101,49 +2101,51 @@ class TestCase:
 
     def _cleanup_database(self, args, timeout):
         database = args.testcase_database
-
-        # Check if the test does not cleanup its tables.
-        # Only for newly added tests. Please extend this check to the old tests as well.
-        if self.case_file >= "02800":
-            leftover_tables = (
-                clickhouse_execute(
-                    args,
-                    f"SHOW TABLES FROM {database}",
-                    timeout=timeout,
-                    settings={
-                        "log_comment": args.testcase_basename,
-                    },
-                )
-                .decode()
-                .replace("\n", ", ")
-            )
-
-            if len(leftover_tables) != 0:
-                raise TestException(
-                    f"The test should cleanup its tables ({leftover_tables}), otherwise it is inconvenient for running it locally."
+        try:
+            # Check if the test does not cleanup its tables.
+            # Only for newly added tests. Please extend this check to the old tests as well.
+            if self.case_file >= "02800":
+                leftover_tables = (
+                    clickhouse_execute(
+                        args,
+                        f"SHOW TABLES FROM {database}",
+                        timeout=timeout,
+                        settings={
+                            "log_comment": args.testcase_basename,
+                        },
+                    )
+                    .decode()
+                    .replace("\n", ", ")
                 )
 
-        drop_database_query = f"DROP DATABASE IF EXISTS {database}"
-        if args.replicated_database:
-            drop_database_query += " ON CLUSTER test_cluster_database_replicated"
-        drop_database_query += " SYNC"
+                if len(leftover_tables) != 0:
+                    raise TestException(
+                        f"The test should cleanup its tables ({leftover_tables}), otherwise it is inconvenient for running it locally."
+                    )
+        except Exception as e:
+            raise TestException(f"Error listing tables in database {database}: {e}")
+        finally:
+            drop_database_query = f"DROP DATABASE IF EXISTS {database}"
+            if args.replicated_database:
+                drop_database_query += " ON CLUSTER test_cluster_database_replicated"
+            drop_database_query += " SYNC"
 
-        # It's possible to get an error "New table appeared in database being dropped or detached. Try again."
-        for _ in range(1, 60):
-            try:
-                clickhouse_execute(
-                    args,
-                    drop_database_query,
-                    timeout=timeout,
-                    settings={
-                        "log_comment": args.testcase_basename,
-                    },
-                )
-            except HTTPError as e:
-                if need_retry(args, e.message, e.message, 0):
-                    continue
-                raise
-            break
+            # It's possible to get an error "New table appeared in database being dropped or detached. Try again."
+            for _ in range(1, 60):
+                try:
+                    clickhouse_execute(
+                        args,
+                        drop_database_query,
+                        timeout=timeout,
+                        settings={
+                            "log_comment": args.testcase_basename,
+                        },
+                    )
+                except HTTPError as e:
+                    if need_retry(args, e.message, e.message, 0):
+                        continue
+                    raise
+                break
 
 
 class TestSuite:
