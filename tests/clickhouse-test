@@ -1246,13 +1246,20 @@ class TestCase:
 
             database = f"test_{random_str()}"
 
-            clickhouse_execute(
-                args,
-                "CREATE DATABASE IF NOT EXISTS "
-                + database
-                + get_db_engine(testcase_args, database),
-                settings=get_create_database_settings(args, testcase_args),
-            )
+            try:
+                clickhouse_execute(
+                    args,
+                    "CREATE DATABASE IF NOT EXISTS "
+                    + database
+                    + get_db_engine(testcase_args, database),
+                    settings=get_create_database_settings(args, testcase_args),
+                )
+            except HTTPError as e:
+                print(
+                    f"clickhouse-test: failed to create database '{database}'. "
+                    f"This is likely a permissions issue. Server response: {e.message}"
+                )
+                raise
 
             os.environ["CLICKHOUSE_DATABASE"] = database
             # Set temporary directory to match the randomly generated database,
