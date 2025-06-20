@@ -2649,7 +2649,7 @@ def run_tests_array(
     sys.stdout.flush()
 
 
-server_logs_level = "information"
+server_logs_level = "warning"
 
 
 def check_server_started(args):
