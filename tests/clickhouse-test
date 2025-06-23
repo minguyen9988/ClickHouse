@@ -1254,6 +1254,20 @@ class TestCase:
                     + get_db_engine(testcase_args, database),
                     settings=get_create_database_settings(args, testcase_args),
                 )
+
+                # Verify that the database was actually created.
+                check_query = f"EXISTS DATABASE {database}"
+                verification = clickhouse_execute(
+                    args, check_query, settings={"database": "system"}
+                )
+                if verification.strip() != b"1":
+                    print(
+                        f"clickhouse-test: VERIFICATION FAILED. Database '{database}' was not created."
+                    )
+                    raise TestException(
+                        f"Database '{database}' not found after CREATE statement."
+                    )
+
             except HTTPError as e:
                 print(
                     f"clickhouse-test: failed to create database '{database}'. "
