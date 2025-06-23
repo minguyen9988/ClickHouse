@@ -1264,9 +1264,7 @@ class TestCase:
                     print(
                         f"clickhouse-test: VERIFICATION FAILED. Database '{database}' was not created."
                     )
-                    raise TestException(
-                        f"Database '{database}' not found after CREATE statement."
-                    )
+                    sys.exit(1)
 
             except HTTPError as e:
                 print(
