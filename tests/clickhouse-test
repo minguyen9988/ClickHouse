@@ -1251,7 +1251,6 @@ class TestCase:
                     args,
                     "CREATE DATABASE IF NOT EXISTS "
                     + database
-                    + " ON CLUSTER 'test_shard_localhost'"
                     + get_db_engine(testcase_args, database),
                     settings=get_create_database_settings(args, testcase_args),
                 )
