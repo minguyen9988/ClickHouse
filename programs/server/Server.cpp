@@ -2689,6 +2689,8 @@ try
 
             is_cancelled = true;
 
+            global_context->stopSwarm();
+
             LOG_DEBUG(log, "Waiting for current connections to close.");
 
             size_t current_connections = 0;

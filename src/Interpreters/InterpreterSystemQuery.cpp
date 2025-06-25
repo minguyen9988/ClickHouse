@@ -330,13 +330,6 @@ BlockIO InterpreterSystemQuery::execute()
                 throw ErrnoException(ErrorCodes::CANNOT_KILL, "System call kill(0, SIGTERM) failed");
             break;
         }
-        case Type::PRESHUTDOWN:
-        {
-            getContext()->checkAccess(AccessType::SYSTEM_SHUTDOWN);
-            getContext()->preShutdown();
-            getContext()->unregisterInDynamicClusters();
-            break;
-        }
         case Type::KILL:
         {
             getContext()->checkAccess(AccessType::SYSTEM_SHUTDOWN);
@@ -700,6 +693,20 @@ BlockIO InterpreterSystemQuery::execute()
         case Type::START_MOVES:
             startStopAction(ActionLocks::PartsMove, true);
             break;
+        case Type::STOP_SWARM:
+        {
+            getContext()->checkAccess(AccessType::SYSTEM_SWARM);
+            getContext()->stopSwarm();
+            getContext()->unregisterInDynamicClusters();
+            break;
+        }
+        case Type::START_SWARM:
+        {
+            getContext()->checkAccess(AccessType::SYSTEM_SWARM);
+            getContext()->startSwarm();
+            getContext()->registerInDynamicClusters();
+            break;
+        }
         case Type::STOP_FETCHES:
             startStopAction(ActionLocks::PartsFetch, false);
             break;
@@ -1475,7 +1482,6 @@ AccessRightsElements InterpreterSystemQuery::getRequiredAccessForDDLOnCluster() 
     switch (query.type)
     {
         case Type::SHUTDOWN:
-        case Type::PRESHUTDOWN:
         case Type::KILL:
         case Type::SUSPEND:
         {
@@ -1570,6 +1576,12 @@ AccessRightsElements InterpreterSystemQuery::getRequiredAccessForDDLOnCluster() 
                 required_access.emplace_back(AccessType::SYSTEM_MOVES);
             else
                 required_access.emplace_back(AccessType::SYSTEM_MOVES, query.getDatabase(), query.getTable());
+            break;
+        }
+        case Type::STOP_SWARM:
+        case Type::START_SWARM:
+        {
+            required_access.emplace_back(AccessType::SYSTEM_SWARM);
             break;
         }
         case Type::STOP_PULLING_REPLICATION_LOG:

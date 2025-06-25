@@ -1225,6 +1225,7 @@ public:
     size_t getClustersVersion() const;
 
     void startClusterDiscovery();
+    void registerInDynamicClusters();
     void unregisterInDynamicClusters();
 
     /// Sets custom cluster, but doesn't update configuration
@@ -1337,8 +1338,9 @@ public:
     void shutdown();
 
     /// Stop some works to allow graceful shutdown later
-    void preShutdown();
-    bool isPreShutdownCalled() const;
+    void stopSwarm();
+    void startSwarm();
+    bool isStopSwarmCalled() const;
 
     bool isInternalQuery() const { return is_internal_query; }
     void setInternalQuery(bool internal) { is_internal_query = internal; }

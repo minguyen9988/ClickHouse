@@ -944,9 +944,9 @@ StorageObjectStorageSource::ReadTaskIterator::ReadTaskIterator(
     : WithContext(context_)
     , callback(callback_)
 {
-    if (getContext()->isPreShutdownCalled())
+    if (getContext()->isStopSwarmCalled())
     {
-        LOG_DEBUG(getLogger("StorageObjectStorageSource"), "PRESHUTDOWN called, stop getting new tasks");
+        LOG_DEBUG(getLogger("StorageObjectStorageSource"), "STOP SWARM called, stop getting new tasks");
         return;
     }
 
@@ -979,9 +979,9 @@ StorageObjectStorage::ObjectInfoPtr StorageObjectStorageSource::ReadTaskIterator
     size_t current_index = index.fetch_add(1, std::memory_order_relaxed);
     if (current_index >= buffer.size())
     {
-        if (getContext()->isPreShutdownCalled())
+        if (getContext()->isStopSwarmCalled())
         {
-            LOG_DEBUG(getLogger("StorageObjectStorageSource"), "PRESHUTDOWN called, stop getting new tasks");
+            LOG_DEBUG(getLogger("StorageObjectStorageSource"), "STOP SWARM called, stop getting new tasks");
             return nullptr;
         }
 

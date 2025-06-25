@@ -566,7 +566,7 @@ struct ContextSharedPart : boost::noncopyable
     std::map<String, UInt16> server_ports;
 
     std::atomic<bool> shutdown_called = false;
-    std::atomic<bool> preshutdown_called = false;
+    std::atomic<bool> stop_swarm_called = false;
 
     Stopwatch uptime_watch TSA_GUARDED_BY(mutex);
 
@@ -735,7 +735,7 @@ struct ContextSharedPart : boost::noncopyable
       */
     void shutdown() TSA_NO_THREAD_SAFETY_ANALYSIS
     {
-        preshutdown_called = true;
+        stop_swarm_called = true;
         bool is_shutdown_called = shutdown_called.exchange(true);
         if (is_shutdown_called)
             return;
@@ -915,9 +915,14 @@ struct ContextSharedPart : boost::noncopyable
         total_memory_tracker.resetPageCache();
     }
 
-    void preShutdown()
+    void stopSwarm()
     {
-        preshutdown_called = true;
+        stop_swarm_called = true;
+    }
+
+    void startSwarm()
+    {
+        stop_swarm_called = false;
     }
 
     bool hasTraceCollector() const
@@ -4514,6 +4519,14 @@ void Context::unregisterInDynamicClusters()
     shared->cluster_discovery->unregisterAll();
 }
 
+void Context::registerInDynamicClusters()
+{
+    std::lock_guard lock(shared->clusters_mutex);
+    if (!shared->cluster_discovery)
+        return;
+    shared->cluster_discovery->registerAll();
+}
+
 void Context::reloadClusterConfig() const
 {
     while (true)
@@ -5368,14 +5381,19 @@ void Context::shutdown() TSA_NO_THREAD_SAFETY_ANALYSIS
     shared->shutdown();
 }
 
-void Context::preShutdown()
+void Context::stopSwarm()
 {
-    shared->preshutdown_called = true;
+    shared->stop_swarm_called = true;
 }
 
-bool Context::isPreShutdownCalled() const
+void Context::startSwarm()
 {
-    return shared->preshutdown_called;
+    shared->stop_swarm_called = false;
+}
+
+bool Context::isStopSwarmCalled() const
+{
+    return shared->stop_swarm_called;
 }
 
 Context::ApplicationType Context::getApplicationType() const
