@@ -27,6 +27,7 @@ namespace Setting
 {
     extern const SettingsBool use_hive_partitioning;
     extern const SettingsString object_storage_cluster;
+    extern const SettingsUInt64 lock_object_storage_task_distribution_ms;
 }
 
 namespace ErrorCodes
@@ -34,6 +35,7 @@ namespace ErrorCodes
     extern const int LOGICAL_ERROR;
     extern const int UNKNOWN_FUNCTION;
     extern const int NOT_IMPLEMENTED;
+    extern const int INVALID_SETTING_VALUE;
 }
 
 
@@ -367,8 +369,9 @@ class TaskDistributor : public TaskIterator
 {
 public:
     TaskDistributor(std::shared_ptr<IObjectIterator> iterator,
-        const std::vector<std::string> & ids_of_hosts)
-        : task_distributor(iterator, ids_of_hosts) {}
+        const std::vector<std::string> & ids_of_hosts,
+        uint64_t lock_object_storage_task_distribution_ms)
+        : task_distributor(iterator, ids_of_hosts, lock_object_storage_task_distribution_ms) {}
     ~TaskDistributor() override = default;
     bool supportRerunTask() const override { return true; }
     void rescheduleTasksFromReplica(size_t number_of_current_replica) override
@@ -408,7 +411,22 @@ RemoteQueryExecutor::Extension StorageObjectStorageCluster::getTaskIteratorExten
         }
     }
 
-    auto callback = std::make_shared<TaskDistributor>(iterator, ids_of_hosts);
+    uint64_t lock_object_storage_task_distribution_ms = local_context->getSettingsRef()[Setting::lock_object_storage_task_distribution_ms];
+
+    /// Check value to avoid negative result after conversion in microseconds.
+    /// Poco::Timestamp::TimeDiff is signed int 64.
+    static const uint64_t lock_object_storage_task_distribution_ms_max = 0x0020000000000000ULL;
+    if (lock_object_storage_task_distribution_ms > lock_object_storage_task_distribution_ms_max)
+        throw Exception(ErrorCodes::INVALID_SETTING_VALUE,
+            "Value lock_object_storage_task_distribution_ms is too big: {}, allowed maximum is {}",
+            lock_object_storage_task_distribution_ms,
+            lock_object_storage_task_distribution_ms_max
+        );
+
+    auto callback = std::make_shared<TaskDistributor>(
+        iterator,
+        ids_of_hosts,
+        lock_object_storage_task_distribution_ms);
 
     return RemoteQueryExecutor::Extension{ .task_iterator = std::move(callback) };
 }

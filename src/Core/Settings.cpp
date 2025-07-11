@@ -5719,7 +5719,7 @@ Query Iceberg table using the specific snapshot id.
     DECLARE(Bool, allow_deprecated_error_prone_window_functions, false, R"(
 Allow usage of deprecated error prone window functions (neighbor, runningAccumulate, runningDifferenceStartingWithFirstValue, runningDifference)
 )", 0) \
-    DECLARE(Bool, use_iceberg_partition_pruning, false, R"(
+    DECLARE(Bool, use_iceberg_partition_pruning, true, R"(
 Use Iceberg partition pruning for Iceberg tables
 )", 0) \
     DECLARE(Bool, allow_deprecated_snowflake_conversion_functions, false, R"(
@@ -6139,8 +6139,14 @@ Allow retries in cluster request, when one node goes offline
     DECLARE(Bool, allow_experimental_ts_to_grid_aggregate_function, false, R"(
 Experimental tsToGrid aggregate function for Prometheus-like timeseries resampling. Cloud only
 )", EXPERIMENTAL) \
+    DECLARE(Bool, use_object_storage_list_objects_cache, false, R"(
+Cache the list of objects returned by list objects calls in object storage
+)", EXPERIMENTAL) \
     DECLARE(Bool, object_storage_remote_initiator, false, R"(
 Execute request to object storage as remote on one of object_storage_cluster nodes.
+)", EXPERIMENTAL) \
+    DECLARE(UInt64, lock_object_storage_task_distribution_ms, 0, R"(
+In object storage distribution queries do not distibute tasks on non-prefetched nodes until prefetched node is active.
 )", EXPERIMENTAL) \
     \
 

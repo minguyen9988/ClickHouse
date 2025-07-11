@@ -66,14 +66,18 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
         /// controls new feature and it's 'true' by default, use 'false' as previous_value).
         /// It's used to implement `compatibility` setting (see https://github.com/ClickHouse/ClickHouse/issues/35972)
         /// Note: please check if the key already exists to prevent duplicate entries.
+        addSettingsChanges(settings_changes_history, "25.3.3.20000",
+        {
+            // Altinity Antalya modifications atop of 25.3
+            {"lock_object_storage_task_distribution_ms", 0, 0, "New setting."},
+            {"use_iceberg_partition_pruning", false, true, "Enable Iceberg partition pruning by default."},
+        });
         addSettingsChanges(settings_changes_history, "25.2.1.20000",
         {
             // Altinity Antalya modifications atop of 25.2
             {"object_storage_cluster", "", "", "New setting"},
             {"object_storage_max_nodes", 0, 0, "New setting"},
-        });
-        addSettingsChanges(settings_changes_history, "25.4",
-        {
+            {"use_object_storage_list_objects_cache", true, false, "New setting."},
         });
         addSettingsChanges(settings_changes_history, "25.3",
         {
@@ -133,7 +137,7 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"distributed_cache_connect_max_tries", 20, 20, "Cloud only"},
             {"query_plan_use_new_logical_join_step", false, false, "New join step, internal change"},
             {"distributed_cache_min_bytes_for_seek", 0, 0, "New private setting."},
-            {"use_iceberg_partition_pruning", false, false, "New setting"},
+            {"use_iceberg_partition_pruning", false, false, "New setting for Iceberg partition pruning."},
             {"max_bytes_ratio_before_external_group_by", 0.0, 0.5, "Enable automatic spilling to disk by default."},
             {"max_bytes_ratio_before_external_sort", 0.0, 0.5, "Enable automatic spilling to disk by default."},
             {"min_external_sort_block_bytes", 0., 100_MiB, "New setting."},
