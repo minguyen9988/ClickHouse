@@ -341,8 +341,9 @@ void TokenAccessStorage::updateAssignedRolesNoLock(const UUID & id, const String
 std::optional<AuthResult> TokenAccessStorage::authenticateImpl(
         const Credentials & credentials,
         const Poco::Net::IPAddress & address,
-        [[maybe_unused]] const ExternalAuthenticators & external_authenticators,
-        [[maybe_unused]] bool throw_if_user_not_exists,
+        const ExternalAuthenticators & external_authenticators,
+        const ClientInfo & /* client_info */,
+        bool throw_if_user_not_exists,
         bool /* allow_no_password */,
         bool /* allow_plaintext_password */) const
 {
@@ -356,7 +357,7 @@ std::optional<AuthResult> TokenAccessStorage::authenticateImpl(
     {
         // Even though token itself may be valid (especially in case of a jwt token), authentication has just failed.
         if (throw_if_user_not_exists)
-            throwNotFound(AccessEntityType::USER, credentials.getUserName());
+            throwNotFound(AccessEntityType::USER, credentials.getUserName(), getStorageName());
         else
             return {};
     }

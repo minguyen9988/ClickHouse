@@ -62,18 +62,21 @@ private: // IAccessStorage implementations.
 
     bool areTokenCredentialsValidNoLock(const User & user, const Credentials & credentials, const ExternalAuthenticators & external_authenticators) const;
 
+    void applyRoleChangeNoLock(bool grant, const UUID & role_id, const String & role_name);
+    void assignRolesNoLock(User & user, const std::set<String> & external_roles, std::size_t external_roles_hash) const;
+    void updateAssignedRolesNoLock(const UUID & id, const String & user_name, const std::set<String> & external_roles) const;
+
+protected:
     std::optional<UUID> findImpl(AccessEntityType type, const String & name) const override;
     std::vector<UUID> findAllImpl(AccessEntityType type) const override;
     AccessEntityPtr readImpl(const UUID & id, bool throw_if_not_exists) const override;
     std::optional<std::pair<String, AccessEntityType>> readNameWithTypeImpl(const UUID & id, bool throw_if_not_exists) const override;
-    std::optional<AuthResult> authenticateImpl(const Credentials & credentials, const Poco::Net::IPAddress & address,
-                                               [[maybe_unused]] const ExternalAuthenticators & external_authenticators,
-                                               [[maybe_unused]] bool throw_if_user_not_exists,
-                                               bool allow_no_password, bool allow_plaintext_password) const override;
-
-
-    void applyRoleChangeNoLock(bool grant, const UUID & role_id, const String & role_name);
-    void assignRolesNoLock(User & user, const std::set<String> & external_roles, std::size_t external_roles_hash) const;
-    void updateAssignedRolesNoLock(const UUID & id, const String & user_name, const std::set<String> & external_roles) const;
+    std::optional<AuthResult> authenticateImpl(const Credentials & credentials,
+                                               const Poco::Net::IPAddress & address,
+                                               const ExternalAuthenticators & external_authenticators,
+                                               const ClientInfo & client_info,
+                                               bool throw_if_user_not_exists,
+                                               bool allow_no_password,
+                                               bool allow_plaintext_password) const override;
 };
 }

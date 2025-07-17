@@ -1,5 +1,6 @@
 #include <Access/AccessTokenProcessor.h>
 #include <Common/logger_useful.h>
+#include <Poco/StreamCopier.h>
 #include <picojson/picojson.h>
 #include <jwt-cpp/jwt.h>
 
