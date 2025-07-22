@@ -11,7 +11,6 @@
 #include <Compression/CompressedReadBuffer.h>
 #include <Compression/CompressedWriteBuffer.h>
 #include <Compression/CompressionFactory.h>
-#include <Access/ExternalAuthenticators.h>
 #include <Core/ExternalTable.h>
 #include <Core/ServerSettings.h>
 #include <Core/Settings.h>
@@ -44,6 +43,7 @@
 #include <Poco/Net/NetException.h>
 #include <Poco/Net/SocketAddress.h>
 #include <Poco/Util/LayeredConfiguration.h>
+#include <Access/ExternalAuthenticators.h>
 #include "Common/OpenTelemetryTraceContext.h"
 #include <Common/CurrentMetrics.h>
 #include <Common/CurrentThread.h>
