@@ -129,11 +129,21 @@ std::unique_ptr<IAccessTokenProcessor> IAccessTokenProcessor::parseTokenProcesso
 
             if (is_auto && !is_manual)
             {
-                return std::make_unique<OpenIDAccessTokenProcessor>(name, cache_lifetime, email_regex_str, config.getString(prefix + ".configuration_endpoint"), config.getString(prefix + ".groups_claim_name", ""));
+                return std::make_unique<OpenIDAccessTokenProcessor>(name,
+                                                                    cache_lifetime,
+                                                                    email_regex_str,
+                                                                    config.getString(prefix + ".configuration_endpoint"),
+                                                                    config.getString(prefix + ".groups_claim_name", ""));
             }
             else if (!is_auto && is_manual)
             {
-                return std::make_unique<OpenIDAccessTokenProcessor>(name, cache_lifetime, email_regex_str, config.getString(prefix + ".userinfo_endpoint"), config.getString(prefix + ".token_introspection_endpoint"));
+                return std::make_unique<OpenIDAccessTokenProcessor>(name,
+                                                                    cache_lifetime,
+                                                                    email_regex_str,
+                                                                    config.getString(prefix + ".userinfo_endpoint"),
+                                                                    config.getString(prefix + ".token_introspection_endpoint"),
+                                                                    config.getString(prefix + ".jwks_uri"),
+                                                                    config.getString(prefix + ".groups_claim_name"));
             }
 
             throw Exception(ErrorCodes::INVALID_CONFIG_PARAMETER, "Could not parse access token processor {}: "
@@ -349,6 +359,7 @@ OpenIDAccessTokenProcessor::OpenIDAccessTokenProcessor(const String & name_,
 {
     if (!jwks_uri_.empty())
     {
+        LOG_TRACE(getLogger("AccessTokenProcessor"), "{}: JWKS URI set, local JWT processing will be attempted", name);
         jwt_validator.emplace(name_ + "jwks_val", jwks_uri_, cache_invalidation_interval_);
     }
 }
@@ -382,7 +393,6 @@ bool OpenIDAccessTokenProcessor::resolveAndValidate(const TokenCredentials & cre
 
     if (jwt_validator.has_value() && jwt_validator.value().validate("", token, username))
     {
-
         try
         {
             auto decoded_token = jwt::decode(token);

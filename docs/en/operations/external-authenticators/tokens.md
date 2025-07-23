@@ -93,16 +93,18 @@ All this implies that the SQL-driven [Access Control and Account Management](/do
 
 ```xml
 <clickhouse>
-    <token>
-        <processor>gogoogle</processor>
-        <roles>
-            <token_test_role_1 />
-        </roles>
-    </token>
+    <user_directories>
+        <token>
+            <processor>processor_name</processor>
+            <roles>
+                <token_test_role_1 />
+            </roles>
+        </token>
+    </user_directories>
 </clickhouse>
 ```
 
 **Parameters**
 
-- `server` — Name of one of processors defined in `access_token_processors` config section described above. This parameter is mandatory and cannot be empty.
+- `processor` — Name of one of processors defined in `access_token_processors` config section described above. This parameter is mandatory and cannot be empty.
 - `roles` — Section with a list of locally defined roles that will be assigned to each user retrieved from the IdP.
