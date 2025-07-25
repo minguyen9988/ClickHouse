@@ -92,6 +92,7 @@ std::unique_ptr<IAccessTokenProcessor> IAccessTokenProcessor::parseTokenProcesso
     const String & prefix,
     const String & name)
 {
+    /// TODO: maybe bind external user to the processor it was created with?
     if (config.hasProperty(prefix + ".provider"))
     {
         String provider = Poco::toLower(config.getString(prefix + ".provider"));
@@ -143,7 +144,7 @@ std::unique_ptr<IAccessTokenProcessor> IAccessTokenProcessor::parseTokenProcesso
                                                                     config.getString(prefix + ".userinfo_endpoint"),
                                                                     config.getString(prefix + ".token_introspection_endpoint"),
                                                                     config.getString(prefix + ".jwks_uri"),
-                                                                    config.getString(prefix + ".groups_claim_name"));
+                                                                    config.getString(prefix + ".groups_claim_name", ""));
             }
 
             throw Exception(ErrorCodes::INVALID_CONFIG_PARAMETER, "Could not parse access token processor {}: "

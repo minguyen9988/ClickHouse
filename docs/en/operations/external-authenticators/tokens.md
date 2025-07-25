@@ -41,11 +41,20 @@ Different providers have different sets of parameters.
 
 **Parameters**
 
-- `provider` -- name of identity provider. Mandatory, case-insensitive. Supported options: "Google", "Azure".
+- `provider` -- name of identity provider. Mandatory, case-insensitive. Supported options: "Google", "Azure", "OpenID".
 - `cache_lifetime` --  maximum lifetime of cached token (in seconds). Optional, default: 3600.
 - `email_filter` -- Regex for validation of user emails. Optional parameter, only for Google IdP.
-- `client_id` -- Azure AD (Entra ID) client ID. Optional parameter, only for Azure IdP.
-- `tenant_id` -- Azure AD (Entra ID) tenant ID. Optional parameter, only for Azure IdP.
+- `client_id` -- Azure AD (Entra ID) client ID. Optional parameter, used only for Azure IdP.
+- `tenant_id` -- Azure AD (Entra ID) tenant ID. Optional parameter, used only for Azure IdP.
+- `groups_claim_name` -- Name of claim (field) that contains list of groups user belongs to. This claim will be looked up in the token itself (in case token is a valid JWT, e.g. in Keycloak) or in response from `/userinfo`. Optional parameter.
+- `configuration_endpoint` -- URI of `.well-known/openid-configuration`. Optional parameter, useful only for OIDC-compliant providers (e.g. Keycloak).
+- `userinfo_endpoint` -- URI of userinfo endpoint. Optional parameter.
+- `token_introspection_endpoint` -- URI of token introspection endpoint. Optional parameter.
+  
+:::note
+Either `configuration_endpoint` or both `userinfo_endpoint` and `token_introspection_endpoint` shall be set. If none of them are set or all three are set, this is invalid configuration, it will not be parsed.
+:::
+
 
 ### Tokens cache
 To reduce number of requests to IdP, tokens are cached internally for no longer then `cache_lifetime` seconds.
