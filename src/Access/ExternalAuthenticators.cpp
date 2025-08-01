@@ -325,21 +325,22 @@ void parseJWTValidators(std::unordered_map<String, std::unique_ptr<IJWTValidator
     }
 }
 
-void parseAccessTokenProcessors(std::unordered_map<String, std::unique_ptr<IAccessTokenProcessor>> & access_token_processors,
+void parseAccessTokenProcessors(std::unordered_map<String, std::unique_ptr<IAccessTokenProcessor>> & token_processors,
                         const Poco::Util::AbstractConfiguration & config,
-                        const String & access_token_processors_config,
+                        const String & token_processors_config,
                         LoggerPtr log)
 {
-    Poco::Util::AbstractConfiguration::Keys access_token_processors_keys;
-    config.keys(access_token_processors_config, access_token_processors_keys);
-    access_token_processors.clear();
+    Poco::Util::AbstractConfiguration::Keys token_processors_keys;
+    config.keys(token_processors_config, token_processors_keys);
 
-    for (const auto & processor : access_token_processors_keys)
+    token_processors.clear();
+
+    for (const auto & processor : token_processors_keys)
     {
-        String prefix = fmt::format("{}.{}", access_token_processors_config, processor);
+        String prefix = fmt::format("{}.{}", token_processors_config, processor);
         try
         {
-            access_token_processors[processor] = IAccessTokenProcessor::parseTokenProcessor(config, prefix, processor);
+            token_processors[processor] = IAccessTokenProcessor::parseTokenProcessor(config, prefix, processor);
         }
         catch (...)
         {
@@ -360,11 +361,11 @@ void ExternalAuthenticators::setConfiguration(const Poco::Util::AbstractConfigur
     std::size_t kerberos_keys_count = 0;
     std::size_t http_auth_server_keys_count = 0;
     std::size_t jwt_validators_count = 0;
-    std::size_t access_token_processors_count = 0;
+    std::size_t token_processors_count = 0;
 
     const String http_auth_servers_config = "http_authentication_servers";
     const String jwt_validators_config = "jwt_validators";
-    const String access_token_processors_config = "access_token_processors";
+    const String token_processors_config = "token_processors";
 
     for (auto key : all_keys)
     {
@@ -378,7 +379,7 @@ void ExternalAuthenticators::setConfiguration(const Poco::Util::AbstractConfigur
         kerberos_keys_count += (key == "kerberos");
         http_auth_server_keys_count += (key == http_auth_servers_config);
         jwt_validators_count += (key == jwt_validators_config);
-        access_token_processors_count += (key == access_token_processors_config);
+        token_processors_count += (key == token_processors_config);
     }
 
     if (ldap_servers_key_count > 1)
@@ -393,8 +394,8 @@ void ExternalAuthenticators::setConfiguration(const Poco::Util::AbstractConfigur
     if (jwt_validators_count > 1)
         throw Exception(ErrorCodes::BAD_ARGUMENTS, "Multiple {} sections are not allowed", jwt_validators_config);
 
-    if (access_token_processors_count > 1)
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Multiple {} sections are not allowed", access_token_processors_config);
+    if (token_processors_count > 1)
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Multiple {} sections are not allowed", token_processors_config);
 
     Poco::Util::AbstractConfiguration::Keys http_auth_server_names;
     config.keys(http_auth_servers_config, http_auth_server_names);
@@ -452,7 +453,7 @@ void ExternalAuthenticators::setConfiguration(const Poco::Util::AbstractConfigur
     }
 
     parseJWTValidators(jwt_validators, config, jwt_validators_config, log);
-    parseAccessTokenProcessors(access_token_processors, config, access_token_processors_config, log);
+    parseAccessTokenProcessors(token_processors, config, token_processors_config, log);
 }
 
 static UInt128 computeParamsHash(const LDAPClient::Params & params, const LDAPClient::RoleSearchParamsList * role_search_params)
@@ -685,7 +686,7 @@ bool ExternalAuthenticators::checkAccessTokenCredentials(const TokenCredentials 
 {
     std::lock_guard lock{mutex};
 
-    if (access_token_processors.empty())
+    if (token_processors.empty())
         throw Exception(ErrorCodes::BAD_ARGUMENTS, "Access token authentication is not configured");
 
     /// lookup token in local cache if not expired.
@@ -707,7 +708,7 @@ bool ExternalAuthenticators::checkAccessTokenCredentials(const TokenCredentials 
         }
     }
 
-    for (const auto & it : access_token_processors)
+    for (const auto & it : token_processors)
     {
         if (it.second->resolveAndValidate(credentials))
         {
@@ -742,10 +743,10 @@ bool ExternalAuthenticators::checkAccessTokenCredentialsByExactProcessor(const T
 {
     std::lock_guard lock{mutex};
 
-    if (access_token_processors.empty())
+    if (token_processors.empty())
         throw Exception(ErrorCodes::BAD_ARGUMENTS, "Access token authentication is not configured");
 
-    for (const auto & it : access_token_processors)
+    for (const auto & it : token_processors)
     {
         if (name == it.second->getName())
         {

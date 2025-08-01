@@ -13,25 +13,21 @@ OAuth 2.0 access tokens can be used to authenticate ClickHouse users. This works
 
 Though this authentication method is different from JWT authentication, it works under the same authentication method to maintain better compatibility. 
 
-For both of these approaches a definition of `access_token_processors` is mandatory.
+For both of these approaches a definition of `token_processors` is mandatory.
 
 ## Access Token Processors
 
-To define an access token processor, add `access_token_processors` section to `config.xml`. Example:
+To define an access token processor, add `token_processors` section to `config.xml`. Example:
 ```xml
 <clickhouse>
-    <access_token_processors>
-        <gogoogle>
-            <provider>Google</provider>
-            <email_filter>^[A-Za-z0-9._%+-]+@example\.com$</email_filter>
-            <cache_lifetime>600</cache_lifetime>
-        </gogoogle>
+    <token_processors>
         <azuure>
             <provider>azure</provider>
+            <username_claim>claim_name</username_claim>
             <client_id>CLIENT_ID</client_id>
             <tenant_id>TENANT_ID</tenant_id>
         </azuure>
-    </access_token_processors>
+    </token_processors>
 </clickhouse>
 ```
 
@@ -42,11 +38,12 @@ Different providers have different sets of parameters.
 **Parameters**
 
 - `provider` -- name of identity provider. Mandatory, case-insensitive. Supported options: "Google", "Azure", "OpenID".
+- `username_claim` -- name of claim (field) that will be treated as ClickHouse user name. Optional, default: "sub".
 - `cache_lifetime` --  maximum lifetime of cached token (in seconds). Optional, default: 3600.
 - `email_filter` -- Regex for validation of user emails. Optional parameter, only for Google IdP.
 - `client_id` -- Azure AD (Entra ID) client ID. Optional parameter, used only for Azure IdP.
 - `tenant_id` -- Azure AD (Entra ID) tenant ID. Optional parameter, used only for Azure IdP.
-- `groups_claim_name` -- Name of claim (field) that contains list of groups user belongs to. This claim will be looked up in the token itself (in case token is a valid JWT, e.g. in Keycloak) or in response from `/userinfo`. Optional parameter.
+- `groups_claim` -- Name of claim (field) that contains list of groups user belongs to. This claim will be looked up in the token itself (in case token is a valid JWT, e.g. in Keycloak) or in response from `/userinfo`. Optional parameter.
 - `configuration_endpoint` -- URI of `.well-known/openid-configuration`. Optional parameter, useful only for OIDC-compliant providers (e.g. Keycloak).
 - `userinfo_endpoint` -- URI of userinfo endpoint. Optional parameter.
 - `token_introspection_endpoint` -- URI of token introspection endpoint. Optional parameter.
@@ -67,16 +64,19 @@ Locally defined users can be authenticated with an access token. To allow this, 
 
 ```xml
 <clickhouse>
-    <!- ... -->
     <users>
-        <!- ... -->
         <my_user>
-            <!- ... -->
+            <jwt>
+                <allowed_processors>
+                    <azuure />
+                </allowed_processors>
             </jwt>
         </my_user>
     </users>
 </clickhouse>
 ```
+
+Inside `jwt` one or more specific access token processors names can be specified -- only those processors will be tried when authenticating. If no processors are specified, _all_ processors will be tried.
 
 At each login attempt, ClickHouse will attempt to validate token and get user info against every defined access token provider.
 
@@ -94,7 +94,7 @@ If there is no suitable user pre-defined in ClickHouse, authentication is still 
 To allow this, add `token` section to the `users_directories` section of the `config.xml` file. 
 
 At each login attempt, ClickHouse tries to find the user definition locally and authenticate it as usual.
-If the user is not defined, ClickHouse will treat user as externally defined, and will try to validate the token and get user information from the specified processor.
+If the user is not defined, ClickHouse will treat the user as externally defined and will try to validate the token and get user information from the specified processor.
 If validated successfully, the user will be considered existing and authenticated. The user will be assigned roles from the list specified in the `roles` section. 
 All this implies that the SQL-driven [Access Control and Account Management](/docs/en/guides/sre/user-management/index.md#access-control) is enabled and roles are created using the [CREATE ROLE](/docs/en/sql-reference/statements/create/role.md#create-role-statement) statement.
 
@@ -105,15 +105,21 @@ All this implies that the SQL-driven [Access Control and Account Management](/do
     <user_directories>
         <token>
             <processor>processor_name</processor>
-            <roles>
+            <common_roles>
                 <token_test_role_1 />
-            </roles>
+            </common_roles>
+            <roles_filter></roles_filter>
         </token>
     </user_directories>
 </clickhouse>
 ```
 
+:::note
+For now, no more than one `token` section can be defined inside `user_directories`. This _may_ change in future.
+:::
+
 **Parameters**
 
-- `processor` — Name of one of processors defined in `access_token_processors` config section described above. This parameter is mandatory and cannot be empty.
-- `roles` — Section with a list of locally defined roles that will be assigned to each user retrieved from the IdP.
+- `processor` — Name of one of processors defined in `token_processors` config section described above. This parameter is mandatory and cannot be empty.
+- `common_roles` — Section with a list of locally defined roles that will be assigned to each user retrieved from the IdP. Optional.
+- `roles_filter` — Regex string for groups filtering. Only groups matching this regex will be mapped to roles. Optional.

@@ -20,12 +20,8 @@ namespace ErrorCodes
 
 TokenAccessStorage::TokenAccessStorage(const String & storage_name_, AccessControl & access_control_, const Poco::Util::AbstractConfiguration & config_, const String & prefix_)
         : IAccessStorage(storage_name_), access_control(access_control_), config(config_), prefix(prefix_),
+          roles_filter(config.getString(prefix.empty() ? "" : prefix + "." + "roles_filter", "")),
         memory_storage(storage_name_, access_control.getChangesNotifier(), false)
-{
-    setConfiguration();
-}
-
-void TokenAccessStorage::setConfiguration()
 {
     std::lock_guard lock(mutex);
 
@@ -35,17 +31,14 @@ void TokenAccessStorage::setConfiguration()
     if (provider_name.empty())
         throw Exception(ErrorCodes::BAD_ARGUMENTS, "'processor' must be specified for Token user directory");
 
-    const bool has_roles = config.has(prefix_str + "roles");
-
     std::set<String> common_roles_cfg;
-    if (has_roles)
+    if (config.has(prefix_str + "common_roles"))
     {
         Poco::Util::AbstractConfiguration::Keys role_names;
         config.keys(prefix_str + "roles", role_names);
 
         common_roles_cfg.insert(role_names.begin(), role_names.end());
     }
-
     common_role_names.swap(common_roles_cfg);
 
     external_role_hashes.clear();
@@ -375,7 +368,22 @@ std::optional<AuthResult> TokenAccessStorage::authenticateImpl(
     if (!isAddressAllowed(*user, address))
         throwAddressNotAllowed(address);
 
-    std::set<String> external_roles = token_credentials.getGroups();
+    std::set<String> external_roles;
+    if (!roles_filter.ok())
+    {
+        external_roles = token_credentials.getGroups();
+        LOG_TRACE(getLogger(), "{}: No external role filtering set, applying all available groups", getStorageName());
+    }
+    else
+    {
+        for (const auto & group: token_credentials.getGroups()) {
+            if (RE2::FullMatch(group, roles_filter))
+            {
+                external_roles.insert(group);
+                LOG_TRACE(getLogger(), "{}: Granted role (group) {} to user", getStorageName(), user->getName());
+            }
+        }
+    }
 
     if (new_user)
     {

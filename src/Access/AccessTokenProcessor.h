@@ -55,6 +55,7 @@ public:
 
 protected:
     const String name;
+    const String username_claim = "sub";
     const UInt64 cache_invalidation_interval;
     re2::RE2 email_regex;
 
@@ -107,7 +108,7 @@ public:
                               const UInt64 cache_invalidation_interval_,
                               const String & email_regex_str,
                               const String & openid_config_endpoint_,
-                              const String & groups_claim_name_);
+                              const String & groups_claim_);
 
     /// Specify endpoints manually
     OpenIDAccessTokenProcessor(const String & name_,
@@ -116,7 +117,7 @@ public:
                                const String & userinfo_endpoint_,
                                const String & token_introspection_endpoint_,
                                const String & jwks_uri_,
-                               const String & groups_claim_name_);
+                               const String & groups_claim_);
 
     bool resolveAndValidate(const TokenCredentials & credentials) override;
 private:
@@ -127,7 +128,7 @@ private:
     std::optional<JWKSValidator> jwt_validator = std::nullopt;
 
     /// groups are expected under /userinfo endpoint under specified name
-    const String groups_claim_name;
+    const String groups_claim;
 };
 
 }

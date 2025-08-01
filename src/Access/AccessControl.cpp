@@ -42,6 +42,7 @@ namespace ErrorCodes
     extern const int REQUIRED_PASSWORD;
     extern const int CANNOT_COMPILE_REGEXP;
     extern const int BAD_ARGUMENTS;
+    extern const int INVALID_CONFIG_PARAMETER;
 }
 
 namespace
@@ -440,6 +441,8 @@ void AccessControl::addStoragesFromUserDirectoriesConfig(
     Strings keys_in_user_directories;
     config.keys(key, keys_in_user_directories);
 
+    bool has_token_storage = false;
+
     for (const String & key_in_user_directories : keys_in_user_directories)
     {
         String prefix = key + "." + key_in_user_directories;
@@ -490,7 +493,11 @@ void AccessControl::addStoragesFromUserDirectoriesConfig(
         }
         else if (type == TokenAccessStorage::STORAGE_TYPE)
         {
+            if (has_token_storage)
+                throw Exception(ErrorCodes::INVALID_CONFIG_PARAMETER, "Only one `token` section can be defined.");
+
             addTokenStorage(name, config, prefix);
+            has_token_storage = true;
         }
         else
             throw Exception(ErrorCodes::UNKNOWN_ELEMENT_IN_CONFIG, "Unknown storage type '{}' at {} in config", type, prefix);

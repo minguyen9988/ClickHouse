@@ -97,11 +97,9 @@ std::unique_ptr<IAccessTokenProcessor> IAccessTokenProcessor::parseTokenProcesso
     {
         String provider = Poco::toLower(config.getString(prefix + ".provider"));
 
-        String email_regex_str = config.hasProperty(prefix + ".email_filter") ? config.getString(
-                prefix + ".email_filter") : "";
-
-        UInt64 cache_lifetime = config.hasProperty(prefix + ".cache_lifetime") ? config.getUInt64(
-                prefix + ".cache_lifetime") : 3600;
+        String email_regex_str = config.getString(prefix + ".email_filter", "");
+        UInt64 cache_lifetime = config.getUInt64(prefix + ".cache_lifetime", 3600);
+        String username_claim = config.getString(prefix + ".username_claim", "sub");
 
         if (provider == "google")
         {
@@ -134,7 +132,7 @@ std::unique_ptr<IAccessTokenProcessor> IAccessTokenProcessor::parseTokenProcesso
                                                                     cache_lifetime,
                                                                     email_regex_str,
                                                                     config.getString(prefix + ".configuration_endpoint"),
-                                                                    config.getString(prefix + ".groups_claim_name", ""));
+                                                                    config.getString(prefix + ".groups_claim", ""));
             }
             else if (!is_auto && is_manual)
             {
@@ -144,7 +142,7 @@ std::unique_ptr<IAccessTokenProcessor> IAccessTokenProcessor::parseTokenProcesso
                                                                     config.getString(prefix + ".userinfo_endpoint"),
                                                                     config.getString(prefix + ".token_introspection_endpoint"),
                                                                     config.getString(prefix + ".jwks_uri"),
-                                                                    config.getString(prefix + ".groups_claim_name", ""));
+                                                                    config.getString(prefix + ".groups_claim", ""));
             }
 
             throw Exception(ErrorCodes::INVALID_CONFIG_PARAMETER, "Could not parse access token processor {}: "
@@ -165,7 +163,7 @@ bool GoogleAccessTokenProcessor::resolveAndValidate(const TokenCredentials & cre
     const String & token = credentials.getToken();
 
     auto user_info = getUserInfo(token);
-    String user_name = user_info["sub"];
+    String user_name = user_info[username_claim];
     bool has_email = user_info.contains("email");
 
     if (email_regex.ok())
@@ -249,7 +247,7 @@ std::unordered_map<String, String> GoogleAccessTokenProcessor::getUserInfo(const
     try
     {
         user_info_map["email"] = getValueByKey(user_info_json, "email");
-        user_info_map["sub"] = getValueByKey(user_info_json, "sub");
+        user_info_map[username_claim] = getValueByKey(user_info_json, username_claim);
         return user_info_map;
     }
     catch (std::runtime_error & e)
@@ -265,7 +263,7 @@ bool AzureAccessTokenProcessor::resolveAndValidate(const TokenCredentials & cred
     /// We will not trust user data in this token except for 'exp' value to determine caching duration.
     /// Explanation here: https://stackoverflow.com/questions/60778634/failing-signature-validation-of-jwt-tokens-from-azure-ad
     /// Let Azure validate it: only valid tokens will be accepted.
-    /// Use GET https://graph.microsoft.com/oidc/userinfo to verify token and get sub at the same time
+    /// Use GET https://graph.microsoft.com/oidc/userinfo to verify token and get user info at the same time
 
     const String & token = credentials.getToken();
 
@@ -344,7 +342,7 @@ bool AzureAccessTokenProcessor::resolveAndValidate(const TokenCredentials & cred
 String AzureAccessTokenProcessor::validateTokenAndGetUsername(const String & token) const
 {
     picojson::object user_info_json = getObjectFromURI(user_info_uri, token);
-    return getValueByKey(user_info_json, "sub");
+    return getValueByKey(user_info_json, username_claim);
 }
 
 
@@ -354,9 +352,9 @@ OpenIDAccessTokenProcessor::OpenIDAccessTokenProcessor(const String & name_,
                            const String & userinfo_endpoint_,
                            const String & token_introspection_endpoint_,
                            const String & jwks_uri_,
-                           const String & groups_claim_name_)
+                           const String & groups_claim_)
     : IAccessTokenProcessor(name_, cache_invalidation_interval_, email_regex_str),
-    userinfo_endpoint(userinfo_endpoint_), token_introspection_endpoint(token_introspection_endpoint_), groups_claim_name(groups_claim_name_)
+    userinfo_endpoint(userinfo_endpoint_), token_introspection_endpoint(token_introspection_endpoint_), groups_claim(groups_claim_)
 {
     if (!jwks_uri_.empty())
     {
@@ -369,7 +367,7 @@ OpenIDAccessTokenProcessor::OpenIDAccessTokenProcessor(const String & name_,
                            const UInt64 cache_invalidation_interval_,
                            const String & email_regex_str,
                            const String & openid_config_endpoint_,
-                           const String & groups_claim_name_)
+                           const String & groups_claim_)
     : IAccessTokenProcessor(name_, cache_invalidation_interval_, email_regex_str)
 {
     const picojson::object openid_config = getObjectFromURI(Poco::URI(openid_config_endpoint_));
@@ -383,7 +381,7 @@ OpenIDAccessTokenProcessor::OpenIDAccessTokenProcessor(const String & name_,
                                getValueByKey(openid_config, "userinfo_endpoint"),
                                getValueByKey(openid_config, "introspection_endpoint"),
                                openid_config.contains("jwks_uri") ? getValueByKey(openid_config, "jwks_uri") : "",
-                               groups_claim_name_);
+                               groups_claim_);
 }
 
 bool OpenIDAccessTokenProcessor::resolveAndValidate(const TokenCredentials & credentials)
@@ -415,7 +413,7 @@ bool OpenIDAccessTokenProcessor::resolveAndValidate(const TokenCredentials & cre
         try
         {
             user_info_json = getObjectFromURI(userinfo_endpoint, token);
-            username = getValueByKey(user_info_json, "sub");
+            username = getValueByKey(user_info_json, username_claim);
         }
         catch (...)
         {
@@ -440,9 +438,9 @@ bool OpenIDAccessTokenProcessor::resolveAndValidate(const TokenCredentials & cre
 
     /// For now, list of groups is expected in a claim with specified name either in token itself or in userinfo response (Keycloak works this way)
     /// TODO: add support for custom endpoints for retrieving groups. Keycloak lists groups in /userinfo and token itself, which is not always the case.
-    if (!groups_claim_name.empty() && user_info_json.contains(groups_claim_name))
+    if (!groups_claim.empty() && user_info_json.contains(groups_claim))
     {
-        if (!user_info_json[groups_claim_name].is<picojson::array>())
+        if (!user_info_json[groups_claim].is<picojson::array>())
         {
             LOG_TRACE(getLogger("AccessTokenProcessor"),
                       "{}: Failed to extract groups: invalid content in user data", name);
@@ -451,7 +449,7 @@ bool OpenIDAccessTokenProcessor::resolveAndValidate(const TokenCredentials & cre
 
         std::set<String> external_groups_names;
 
-        picojson::array groups_array = user_info_json[groups_claim_name].get<picojson::array>();
+        picojson::array groups_array = user_info_json[groups_claim].get<picojson::array>();
         for (const auto & group: groups_array)
         {
             if (group.is<std::string>())

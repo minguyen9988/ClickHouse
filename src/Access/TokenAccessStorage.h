@@ -2,6 +2,7 @@
 
 #include <Access/MemoryAccessStorage.h>
 #include <Access/Credentials.h>
+#include <Common/re2.h>
 #include <base/types.h>
 #include <base/scope_guard.h>
 #include <map>
@@ -47,6 +48,7 @@ private: // IAccessStorage implementations.
     const String & prefix;
 
     String provider_name;
+    re2::RE2 roles_filter;
 
     std::set<String> common_role_names;                         // role name that should be granted to all users at all times
     mutable std::map<String, std::size_t> external_role_hashes;
@@ -57,7 +59,7 @@ private: // IAccessStorage implementations.
     scope_guard role_change_subscription;
     mutable MemoryAccessStorage memory_storage;
 
-    void setConfiguration();
+//    void setConfiguration();
     void processRoleChange(const UUID & id, const AccessEntityPtr & entity);
 
     bool areTokenCredentialsValidNoLock(const User & user, const Credentials & credentials, const ExternalAuthenticators & external_authenticators) const;

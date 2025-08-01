@@ -89,7 +89,7 @@ private:
     std::optional<GSSAcceptorContext::Params> kerberos_params TSA_GUARDED_BY(mutex) ;
     std::unordered_map<String, HTTPAuthClientParams> http_auth_servers TSA_GUARDED_BY(mutex) ;
     std::unordered_map<String, std::unique_ptr<IJWTValidator>> jwt_validators TSA_GUARDED_BY(mutex) ;
-    std::unordered_map<String, std::unique_ptr<IAccessTokenProcessor>> access_token_processors TSA_GUARDED_BY(mutex) ;
+    std::unordered_map<String, std::unique_ptr<IAccessTokenProcessor>> token_processors TSA_GUARDED_BY(mutex) ;
 
     void resetImpl() TSA_REQUIRES(mutex);
 };
