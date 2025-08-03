@@ -46,9 +46,6 @@ std::unique_ptr<DB::ITokenProcessor> ITokenProcessor::parseTokenProcessor(
             }
             else
             {
-                auto userinfo_endpoint = config.getString(prefix + ".userinfo_endpoint");
-                auto token_introspection_endpoint = config.getString(prefix + ".token_introspection_endpoint");
-                auto jwks_uri = config.getString(prefix + ".jwks_uri", "");
                 return std::make_unique<OpenIdTokenProcessor>(processor_name, token_cache_lifetime, username_claim,
                                                               groups_claim,
                                                               config.getString(prefix + ".userinfo_endpoint"),

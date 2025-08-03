@@ -301,7 +301,7 @@ void TokenAccessStorage::assignRolesNoLock(User & user, const std::set<String> &
     if (external_roles.empty())
         roles_per_users.erase(user_name);
     else
-        roles_per_users[user_name] = std::move(external_roles);
+        roles_per_users[user_name] = external_roles;
 
     external_role_hashes[user_name] = external_roles_hash;
 }
