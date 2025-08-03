@@ -243,14 +243,14 @@ bool AzureTokenProcessor::resolveAndValidate(const TokenCredentials & credential
 }
 
 OpenIdTokenProcessor::OpenIdTokenProcessor(const String & processor_name_,
-                                           const UInt64 token_cache_lifetime_,
+                                           UInt64 token_cache_lifetime_,
                                            const String & username_claim_,
                                            const String & groups_claim_,
                                            const String & userinfo_endpoint_,
                                            const String & token_introspection_endpoint_,
-                                           const UInt64 & verifier_leeway_,
+                                           UInt64 verifier_leeway_,
                                            const String & jwks_uri_,
-                                           const UInt64 & jwks_cache_lifetime_)
+                                           UInt64 jwks_cache_lifetime_)
         : ITokenProcessor(processor_name_, token_cache_lifetime_, username_claim_, groups_claim_),
           userinfo_endpoint(userinfo_endpoint_), token_introspection_endpoint(token_introspection_endpoint_)
 {
@@ -269,12 +269,12 @@ OpenIdTokenProcessor::OpenIdTokenProcessor(const String & processor_name_,
 }
 
 OpenIdTokenProcessor::OpenIdTokenProcessor(const String & processor_name_,
-                                           const UInt64 token_cache_lifetime_,
+                                           UInt64 token_cache_lifetime_,
                                            const String & username_claim_,
                                            const String & groups_claim_,
                                            const String & openid_config_endpoint_,
-                                           const UInt64 & verifier_leeway_,
-                                           const UInt64 & jwks_cache_lifetime_)
+                                           UInt64 verifier_leeway_,
+                                           UInt64 jwks_cache_lifetime_)
     : ITokenProcessor(processor_name_, token_cache_lifetime_, username_claim_, groups_claim_)
 {
     const picojson::object openid_config = getObjectFromURI(Poco::URI(openid_config_endpoint_));

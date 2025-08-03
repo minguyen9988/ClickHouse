@@ -14,7 +14,7 @@ class ITokenProcessor
 {
 public:
     explicit ITokenProcessor(const String & processor_name_,
-                             const UInt64 & token_cache_lifetime_,
+                             UInt64 token_cache_lifetime_,
                              const String & username_claim_ = "sub",
                              const String & groups_claim_ = "groups")
     : processor_name(processor_name_), token_cache_lifetime(token_cache_lifetime_), username_claim(username_claim_), groups_claim(groups_claim_) {}
@@ -45,7 +45,7 @@ class StaticKeyJwtProcessor : public ITokenProcessor
 {
 public:
     explicit StaticKeyJwtProcessor(const String & processor_name_,
-                                   const UInt64 & token_cache_lifetime_,
+                                   UInt64 token_cache_lifetime_,
                                    const String & username_claim_,
                                    const String & groups_claim_,
                                    const String & claims_,
@@ -70,23 +70,23 @@ class JwksJwtProcessor : public ITokenProcessor
 {
 public:
     explicit JwksJwtProcessor(const String & processor_name_,
-                              const UInt64 & token_cache_lifetime_,
+                              UInt64 token_cache_lifetime_,
                               const String & username_claim_,
                               const String & groups_claim_,
                               const String & claims_,
-                              const size_t verifier_leeway_,
+                              size_t verifier_leeway_,
                               std::shared_ptr<IJWKSProvider> provider_)
                               : ITokenProcessor(processor_name_, token_cache_lifetime_, username_claim_, groups_claim_),
                                 claims(claims_), provider(provider_), verifier_leeway(verifier_leeway_) {}
 
     explicit JwksJwtProcessor(const String & processor_name_,
-                              const UInt64 & token_cache_lifetime_,
+                              UInt64 token_cache_lifetime_,
                               const String & username_claim_,
                               const String & groups_claim_,
                               const String & claims_,
-                              const size_t verifier_leeway_,
+                              size_t verifier_leeway_,
                               const String & jwks_uri_,
-                              const size_t jwks_cache_lifetime_)
+                              size_t jwks_cache_lifetime_)
                               : JwksJwtProcessor(processor_name_,
                                                  token_cache_lifetime_,
                                                  username_claim_,
@@ -111,9 +111,9 @@ class GoogleTokenProcessor : public ITokenProcessor
 {
 public:
     GoogleTokenProcessor(const String & processor_name_,
-                               const UInt64 token_cache_lifetime_,
-                               const String & username_claim_,
-                               const String & groups_claim_)
+                         UInt64 token_cache_lifetime_,
+                         const String & username_claim_,
+                         const String & groups_claim_)
             : ITokenProcessor(processor_name_, token_cache_lifetime_, username_claim_, groups_claim_) {}
 
     bool resolveAndValidate(const TokenCredentials & credentials) const override;
@@ -123,7 +123,7 @@ class AzureTokenProcessor : public ITokenProcessor
 {
 public:
     AzureTokenProcessor(const String & processor_name_,
-                        const UInt64 token_cache_lifetime_,
+                        UInt64 token_cache_lifetime_,
                         const String & username_claim_,
                         const String & groups_claim_)
             : ITokenProcessor(processor_name_, token_cache_lifetime_, username_claim_, groups_claim_) {}
@@ -136,23 +136,23 @@ class OpenIdTokenProcessor : public ITokenProcessor
 public:
     /// Specify endpoints manually
     OpenIdTokenProcessor(const String & processor_name_,
-                         const UInt64 token_cache_lifetime_,
+                         UInt64 token_cache_lifetime_,
                          const String & username_claim_,
                          const String & groups_claim_,
                          const String & userinfo_endpoint_,
                          const String & token_introspection_endpoint_,
-                         const UInt64 & verifier_leeway_,
+                         UInt64 verifier_leeway_,
                          const String & jwks_uri_,
-                         const UInt64 & jwks_cache_lifetime_);
+                         UInt64 jwks_cache_lifetime_);
 
     /// Obtain endpoints from openid-configuration URL
     OpenIdTokenProcessor(const String & processor_name_,
-                         const UInt64 token_cache_lifetime_,
+                         UInt64 token_cache_lifetime_,
                          const String & username_claim_,
                          const String & groups_claim_,
                          const String & openid_config_endpoint_,
-                         const UInt64 & verifier_leeway_,
-                         const UInt64 & jwks_cache_lifetime_);
+                         UInt64 verifier_leeway_,
+                         UInt64 jwks_cache_lifetime_);
 
     bool resolveAndValidate(const TokenCredentials & credentials) const override;
 private:

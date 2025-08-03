@@ -170,7 +170,7 @@ std::set<String> ITokenProcessor::parseGroupsFromJsonArray(picojson::array group
 }
 
 StaticKeyJwtProcessor::StaticKeyJwtProcessor(const String & processor_name_,
-                                             const UInt64 & token_cache_lifetime_,
+                                             UInt64 token_cache_lifetime_,
                                              const String & username_claim_,
                                              const String & groups_claim_,
                                              const String & claims_,
