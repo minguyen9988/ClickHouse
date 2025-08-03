@@ -191,7 +191,7 @@ bool TokenAccessStorage::areTokenCredentialsValidNoLock(const User & user, const
         return false;
 
     if (const auto * token_credentials = dynamic_cast<const TokenCredentials *>(&credentials))
-        return external_authenticators.checkAccessTokenCredentials(*token_credentials);
+        return external_authenticators.checkTokenCredentials(*token_credentials);
 
     return false;
 }
@@ -346,7 +346,7 @@ std::optional<AuthResult> TokenAccessStorage::authenticateImpl(
 
     const auto & token_credentials = typeid_cast<const TokenCredentials &>(credentials);
 
-    if (!external_authenticators.checkAccessTokenCredentialsByExactProcessor(token_credentials, provider_name))
+    if (!external_authenticators.checkTokenCredentials(token_credentials, provider_name))
     {
         // Even though token itself may be valid (especially in case of a jwt token), authentication has just failed.
         if (throw_if_user_not_exists)

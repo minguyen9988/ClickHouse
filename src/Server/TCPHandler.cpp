@@ -1865,8 +1865,7 @@ void TCPHandler::receiveHello()
 
         const auto & external_authenticators = server.context()->getAccessControl().getExternalAuthenticators();
 
-        if (!external_authenticators.resolveJWTCredentials(credentials, false))
-            external_authenticators.checkAccessTokenCredentials(credentials);
+        external_authenticators.checkTokenCredentials(credentials);
 
         session->authenticate(credentials, getClientAddress(client_info));
         return;

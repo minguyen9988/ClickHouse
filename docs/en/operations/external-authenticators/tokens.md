@@ -24,8 +24,6 @@ To define an access token processor, add `token_processors` section to `config.x
         <azuure>
             <provider>azure</provider>
             <username_claim>claim_name</username_claim>
-            <client_id>CLIENT_ID</client_id>
-            <tenant_id>TENANT_ID</tenant_id>
         </azuure>
     </token_processors>
 </clickhouse>
@@ -39,10 +37,7 @@ Different providers have different sets of parameters.
 
 - `provider` -- name of identity provider. Mandatory, case-insensitive. Supported options: "Google", "Azure", "OpenID".
 - `username_claim` -- name of claim (field) that will be treated as ClickHouse user name. Optional, default: "sub".
-- `cache_lifetime` --  maximum lifetime of cached token (in seconds). Optional, default: 3600.
-- `email_filter` -- Regex for validation of user emails. Optional parameter, only for Google IdP.
-- `client_id` -- Azure AD (Entra ID) client ID. Optional parameter, used only for Azure IdP.
-- `tenant_id` -- Azure AD (Entra ID) tenant ID. Optional parameter, used only for Azure IdP.
+- `cache_lifetime` -- maximum lifetime of cached token (in seconds). Optional, default: 3600.
 - `groups_claim` -- Name of claim (field) that contains list of groups user belongs to. This claim will be looked up in the token itself (in case token is a valid JWT, e.g. in Keycloak) or in response from `/userinfo`. Optional parameter.
 - `configuration_endpoint` -- URI of `.well-known/openid-configuration`. Optional parameter, useful only for OIDC-compliant providers (e.g. Keycloak).
 - `userinfo_endpoint` -- URI of userinfo endpoint. Optional parameter.

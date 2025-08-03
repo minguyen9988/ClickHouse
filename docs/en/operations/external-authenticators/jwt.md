@@ -94,14 +94,8 @@ Only one of `static_jwks` or `static_jwks_file` keys must be present in one veri
     <!- ... -->
     <jwt_validators>
         <basic_auth_server>
-          <uri>http://localhost:8000/.well-known/jwks.json</uri>
-          <connection_timeout_ms>1000</connection_timeout_ms>
-          <receive_timeout_ms>1000</receive_timeout_ms>
-          <send_timeout_ms>1000</send_timeout_ms>
-          <max_tries>3</max_tries>
-          <retry_initial_backoff_ms>50</retry_initial_backoff_ms>
-          <retry_max_backoff_ms>1000</retry_max_backoff_ms>
-          <refresh_ms>300000</refresh_ms>
+          <jwks_uri>http://localhost:8000/.well-known/jwks.json</jwks_uri>
+          <jwks_refresh_timeout>300000</jwks_refresh_timeout>
         </basic_auth_server>
     </jwt_validators>
 </clickhouse>
@@ -110,38 +104,7 @@ Only one of `static_jwks` or `static_jwks_file` keys must be present in one veri
 #### Parameters:
 
 - `uri` - JWKS endpoint. Mandatory.
-- `refresh_ms` - Period for resend request for refreshing JWKS. Optional, default: 300000.
-
-Timeouts in milliseconds on the socket used for communicating with the server (optional):
-- `connection_timeout_ms` - Default: 1000.
-- `receive_timeout_ms` - Default: 1000.
-- `send_timeout_ms` - Default: 1000.
-
-Retry parameters (optional):
-- `max_tries` - The maximum number of attempts to make an authentication request. Default: 3.
-- `retry_initial_backoff_ms` - The backoff initial interval on retry. Default: 50.
-- `retry_max_backoff_ms` - The maximum backoff interval. Default: 1000.
-
-### Verifying access tokens {$verifying-access-tokens}
-
-Access tokens that are not JWT (and thus no data can be extracted from the token directly) need to be resolved by external providers.
-
-**Example**
-```xml
-<clickhouse>
-    <!- ... -->
-    <access_token_processors>
-        <my_access_token_processor>
-          <provider>google</provider>
-        </my_access_token_processor>
-    </access_token_processors>
-</clickhouse>
-```
-
-#### Parameters:
-
-- `provider` - name of provider that will be used for token processing. Mandatory parameter. Possible options: `google`.
-
+- `jwks_refresh_timeout` - Period for resend request for refreshing JWKS. Optional, default: 300000.
 
 ### Enabling JWT authentication in `users.xml` {#enabling-jwt-auth-in-users-xml}
 
