@@ -282,15 +282,18 @@ OpenIdTokenProcessor::OpenIdTokenProcessor(const String & processor_name_,
     if (!openid_config.contains("userinfo_endpoint") || !openid_config.contains("introspection_endpoint"))
         throw Exception(ErrorCodes::AUTHENTICATION_FAILED, "{}: Cannot extract userinfo_endpoint or introspection_endpoint from OIDC configuration, consider manual configuration.", processor_name);
 
-    OpenIdTokenProcessor(processor_name_,
-                               token_cache_lifetime_,
-                               username_claim_,
-                               groups_claim_,
-                               getValueByKey(openid_config, "userinfo_endpoint"),
-                               getValueByKey(openid_config, "introspection_endpoint"),
-                               verifier_leeway_,
-                               openid_config.contains("jwks_uri") ? getValueByKey(openid_config, "jwks_uri") : "",
-                               jwks_cache_lifetime_);
+    if (!openid_config.contains("jwks_uri"))
+    {
+        LOG_TRACE(getLogger("TokenAuthentication"), "{}: JWKS URI set, local JWT processing will be attempted", processor_name_);
+        jwt_validator.emplace(processor_name_ + "jwks_val",
+                              token_cache_lifetime_,
+                              username_claim_,
+                              groups_claim_,
+                              "",
+                              verifier_leeway_,
+                              getValueByKey(openid_config, "jwks_uri"),
+                              jwks_cache_lifetime_);
+    }
 }
 
 bool OpenIdTokenProcessor::resolveAndValidate(const TokenCredentials & credentials) const
