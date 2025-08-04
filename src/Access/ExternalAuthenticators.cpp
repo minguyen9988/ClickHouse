@@ -649,7 +649,7 @@ bool ExternalAuthenticators::checkTokenCredentials(const TokenCredentials & cred
     std::lock_guard lock{mutex};
 
     if (token_processors.empty())
-        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Access token authentication is not configured");
+        throw Exception(ErrorCodes::BAD_ARGUMENTS, "Token authentication is not configured");
 
     /// lookup token in local cache if not expired.
     auto cached_entry_iter = access_token_to_username_cache.find(credentials.getToken());

@@ -213,7 +213,9 @@ All this implies that the SQL-driven [Access Control and Account Management](/do
             <common_roles>
                 <token_test_role_1 />
             </common_roles>
-            <roles_filter></roles_filter>
+            <roles_filter>
+                \bclickhouse-[a-zA-Z0-9]+\b
+            </roles_filter>
         </token>
     </user_directories>
 </clickhouse>
