@@ -13,26 +13,34 @@ ClickHouse users can be authenticated using tokens. This works in two ways:
 
 Although not all tokens are JWTs, under the hood both ways are treated as the same authentication method to maintain better compatibility.
 
-## Token Processors
+# Token Processors
 
-To use token-based authentication, add `token_processors` section to `config.xml` and define at least one token processor in it. Its contents are different for different token processing workflows (JWT and opaque (generic) tokens).
+## Configuration
+To use token-based authentication, add `token_processors` section to `config.xml` and define at least one token processor in it. 
+Its contents are different for different token processor types.
 
-### Common configuration parameters
-In addition to specific parameters (see below), there are also parameters that can be applied to a token processor of any type:
-- `cache_lifetime` -- maximum lifetime of cached token (in seconds). Optional, default: 3600.
+**Common parameters**
+- `type` -- type of token processor. Supported values: "JWT", "Azure", "OpenID". Mandatory. Case-insensitive.
+- `token_cache_lifetime` -- maximum lifetime of cached token (in seconds). Optional, default: 3600.
 - `username_claim` -- name of claim (field) that will be treated as ClickHouse username. Optional, default: "sub".
 - `groups_claim` -- Name of claim (field) that contains list of groups user belongs to. This claim will be looked up in the token itself (in case token is a valid JWT, e.g. in Keycloak) or in response from `/userinfo`. Optional, default: "groups".
 
-### JWT (JSON Web Token)
+For each type, there are additional specific parameters. 
+If some parameters that are not required for current processor type are specified, they are ignored. 
+If there are conflicting parameters (e.g `algo` is specified together with `jwks_uri`), an exception will be thrown.
 
-JWT itself is a source of information about user. It can be decoded locally, and its integrity can be verified using token issuer's (public) key.
+## JWT (JSON Web Token)
 
-This key can exist in three ways:
-* ##### Static key:
+JWT itself is a source of information about user. 
+It is decoded locally and its integrity is verified using either static key or JWKS (JSON Web Key Set), either local or remote.
+
+`algo`, `static_jwks`/`static_jwks_file` and `jwks_uri` are defining different JWT processing workflows, and they cannot be specified together.
+### JWT with static key:
 ```xml
 <clickhouse>
     <token_processors>
         <my_static_key_validator>
+          <type>jwt</type>
           <algo>HS256</algo>
           <static_key>my_static_secret</static_key>
         </my_static_key_validator>
@@ -49,6 +57,7 @@ This key can exist in three ways:
   | HS512 | RS512 | ES512  | PS512 |         |
   |       |       | ES256K |       |         |
   Also supports None (though not recommended).
+`claims` - A string containing a JSON object that should be contained in the token payload. If this parameter is defined, token without corresponding payload will be considered invalid. Optional.
 - `static_key` - key for symmetric algorithms. Mandatory for `HS*` family algorithms.
 - `static_key_in_base64` - indicates if the `static_key` key is base64-encoded. Optional, default: `False`.
 - `public_key` - public key for asymmetric algorithms. Mandatory except for `HS*` family algorithms and `None`.
@@ -56,18 +65,20 @@ This key can exist in three ways:
 - `public_key_password` - public key password. Optional.
 - `private_key_password` - private key password. Optional.
 
-* ##### Static JWKS
+### JWT with static JWKS
 ```xml
 <clickhouse>
     <token_processors>
         <my_static_jwks_validator>
+          <type>jwt</type>
           <static_jwks>{"keys": [{"kty": "RSA", "alg": "RS256", "kid": "mykid", "n": "_public_key_mod_", "e": "AQAB"}]}</static_jwks>
         </my_static_jwks_validator>
     </token_processors>
 </clickhouse>
 ```
 
-#### Parameters:
+**Parameters:**
+
 - `static_jwks` - content of JWKS in JSON
 - `static_jwks_file` - path to a file with JWKS
 - `claims` - A string containing a JSON object that should be contained in the token payload. If this parameter is defined, token without corresponding payload will be considered invalid. Optional.
@@ -81,63 +92,85 @@ Only one of `static_jwks` or `static_jwks_file` keys must be present in one veri
 Only RS* family algorithms are supported!
 :::
 
-* ##### Remote JWKS
+### JWT with remote JWKS
 ```xml
 <clickhouse>
     <token_processors>
         <basic_auth_server>
+          <type>jwt</type>
           <jwks_uri>http://localhost:8000/.well-known/jwks.json</jwks_uri>
-          <jwks_refresh_timeout>300000</jwks_refresh_timeout>
+          <jwks_cache_lifetime>3600</jwks_cache_lifetime>
         </basic_auth_server>
     </token_processors>
 </clickhouse>
 ```
 
-#### Parameters:
+**Parameters:**
 
 - `uri` - JWKS endpoint. Mandatory.
-- `jwks_refresh_timeout` - Period for resend request for refreshing JWKS. Optional, default: 300000.
+- `jwks_cache_lifetime` - Period for resend request for refreshing JWKS. Optional, default: 3600.
 - `claims` - A string containing a JSON object that should be contained in the token payload. If this parameter is defined, token without corresponding payload will be considered invalid. Optional.
 - `verifier_leeway` - Clock skew tolerance (seconds). Useful for handling small differences in system clocks between ClickHouse and the token issuer. Optional.
 
 
-### Opaque tokens
+## Processors with external providers
 
-To define a token processor, add `token_processors` section to `config.xml`. Example:
+Some tokens cannot be decoded and validated locally. External service is needed in this case. "Azure" and "OpenID" (a generic type) are supported now.
+
+### Azure
 ```xml
 <clickhouse>
     <token_processors>
-        <azuure>
-            <provider>openid</provider>
-            <cache_lifetime>600</cache_lifetime>
-            <username_claim>sub</username_claim>
-            <groups_claim>groups</groups_claim>
-        </azuure>
+        <azure_processor>
+          <type>azure</type>
+        </azure_processor>
+    </token_processors>
+</clickhouse>
+```
+
+No additional parameters are required.
+
+### OpenID
+```xml
+<clickhouse>
+    <token_processors>
+        <oid_processor_1>
+          <type>openid</type>
+          <configuration_endpoint>url/.well-known/openid-configuration</configuration_endpoint>
+          <verifier_leeway>60</verifier_leeway>
+          <jwks_cache_lifetime>3600</jwks_cache_lifetime>
+        </oid_processor_1>
+        <oid_processor_2>
+          <type>openid</type>
+          <userinfo_endpoint>url/userinfo</userinfo_endpoint>
+          <token_introspection_endpoint>url/tokeninfo</token_introspection_endpoint>
+          <jwks_uri>url/.well-known/jwks.json</jwks_uri>
+          <verifier_leeway>60</verifier_leeway>
+          <jwks_cache_lifetime>3600</jwks_cache_lifetime>
+        </oid_processor_2>
     </token_processors>
 </clickhouse>
 ```
 
 :::note
-Different providers have different sets of parameters.
+Either `configuration_endpoint` or both `userinfo_endpoint` and `token_introspection_endpoint` (and, optionally, `jwks_uri`) shall be set. If none of them are set or all three are set, this is an invalid configuration that will not be parsed.
 :::
 
-**Parameters**
+**Parameters:**
 
-- `provider` -- name of identity provider. Mandatory, case-insensitive. Supported options: "Google", "Azure", "OpenID".
-- `configuration_endpoint` -- URI of `.well-known/openid-configuration`. Optional parameter, used only for OpenID providers.
-- `userinfo_endpoint` -- URI of userinfo endpoint. Optional parameter. Optional parameter, used only for OpenID providers.
-- `token_introspection_endpoint` -- URI of token introspection endpoint. Optional parameter. Optional parameter, used only for OpenID providers.
-  
-:::note
-Either `configuration_endpoint` or both `userinfo_endpoint` and `token_introspection_endpoint` shall be set. If none of them are set or all three are set, this is an invalid configuration that will not be parsed.
-:::
+- `configuration_endpoint` - URI of OpenID configuration (often ends with `.well-known/openid-configuration`);
+- `userinfo_endpoint` - URI of endpoint that returns user information in exchange for a valid token;
+- `token_introspection_endpoint` - URI of token introspection endpoint (returns information about a valid token);
+- `jwks_uri` - URI of OpenID configuration (often ends with `.well-known/jwks.json`)
+- `jwks_cache_lifetime` - Period for resend request for refreshing JWKS. Optional, default: 3600.
+- `verifier_leeway` - Clock skew tolerance (seconds). Useful for handling small differences in system clocks between ClickHouse and the token issuer. Optional, default: 60
 
-
+Sometimes a token is a valid JWT. In that case token will be decoded and validated locally if configuration endpoint returns JWKS URI (or `jwks_uri` is specified alongside `userinfo_endpoint` and `token_introspection_endpoint`).
 
 ### Tokens cache
-To reduce number of requests to IdP, tokens are cached internally for no longer then `cache_lifetime` seconds.
-If token expires sooner than `cache_lifetime`, then cache entry for this token will only be valid while token is valid.
-If token lifetime is longer than `cache_lifetime`, cache entry for this token will be valid for `cache_lifetime`. 
+To reduce number of requests to IdP, tokens are cached internally for no longer then `token_cache_lifetime` seconds.
+If token expires sooner than `token_cache_lifetime`, then cache entry for this token will only be valid while token is valid.
+If token lifetime is longer than `token_cache_lifetime`, cache entry for this token will be valid for `token_cache_lifetime`. 
 
 ## Enabling token authentication for a user in `users.xml` {#enabling-jwt-auth-in-users-xml}
 
@@ -181,17 +214,7 @@ JWT authentication cannot be used together with any other authentication method.
 
 ## Enabling token authentication using SQL {#enabling-jwt-auth-using-sql}
 
-When [SQL-driven Access Control and Account Management](/docs/en/guides/sre/user-management/index.md#access-control) is enabled in ClickHouse, users identified by JWT authentication can also be created using SQL statements.
-
-```sql
-CREATE USER my_user IDENTIFIED WITH jwt CLAIMS '{"resource_access":{"account": {"roles": ["view-profile"]}}}'
-```
-
-Or without additional JWT payload checks:
-
-```sql
-CREATE USER my_user IDENTIFIED WITH jwt
-```
+Users with "JWT" authentication type cannot be created using SQL now.
 
 ## Identity Provider as an External User Directory {#idp-external-user-directory}
 
