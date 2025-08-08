@@ -81,9 +81,10 @@ def run_tests(
         extra_args += " --shard"
     if "--no-zookeeper" not in extra_args:
         extra_args += " --zookeeper"
+    # NOTE(strtgbb): Set test-runs to 2 to run tests twice, workaround for strange UNKNOWN_DATABASE issue
     # Remove --report-logs-stats, it hides sanitizer errors in def reportLogStats(args): clickhouse_execute(args, "SYSTEM FLUSH LOGS")
     command = f"clickhouse-test --testname --check-zookeeper-session --hung-check --trace \
-                --capture-client-stacktrace --queries ./tests/queries --test-runs 1 \
+                --capture-client-stacktrace --queries ./tests/queries --test-runs 2 \
                 {'--no-parallel' if no_parallel else ''}  {'--no-sequential' if no_sequiential else ''} \
                 --jobs {nproc} {extra_args} \
                 --queries ./tests/queries -- '{test}' | ts '%Y-%m-%d %H:%M:%S' \
@@ -93,7 +94,7 @@ def run_tests(
     Shell.run(command, verbose=True)
 
 
-def run_specific_tests(tests, runs=1):
+def run_specific_tests(tests, runs=2):
     test_output_file = f"{temp_dir}/test_result.txt"
     nproc = int(Utils.cpu_count() / 2)
     # Remove --report-logs-stats, it hides sanitizer errors in def reportLogStats(args): clickhouse_execute(args, "SYSTEM FLUSH LOGS")
