@@ -18,7 +18,7 @@ std::unique_ptr<DB::ITokenProcessor> ITokenProcessor::parseTokenProcessor(
     if (!config.hasProperty(prefix + ".type"))
         throw DB::Exception(ErrorCodes::INVALID_CONFIG_PARAMETER, "'type' parameter shall be specified in token_processor configuration.'");
 
-    auto provider_type = Poco::toLower(config.getString(prefix + ".typ"));
+    auto provider_type = Poco::toLower(config.getString(prefix + ".type"));
 
     auto token_cache_lifetime = config.getUInt64(prefix + ".token_cache_lifetime", 3600);
     auto username_claim = config.getString(prefix + ".username_claim", "sub");
